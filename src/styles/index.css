@@ -1,0 +1,301 @@
+/* ============================================================
+   UNITED 216 — pixel-powered roommate duty tracker
+   Palette: dark charcoal-maroon canvas, Telkom crimson accent
+   ============================================================ */
+:root{
+  --bg:#150d0e;
+  --bg2:#1f1214;
+  --panel:#241a1b;
+  --panel2:#2c1f20;
+  --line:rgba(255,235,230,.09);
+  --ink:#f7efe9;
+  --muted:#b9a49f;
+  --red:#d0212d;        /* Telkom crimson */
+  --red-deep:#7e1418;
+  --red-hot:#ff4a4a;
+  --red-soft:rgba(208,33,45,.14);
+  --green:#3ecf6e;
+  --green-deep:#14532d;
+  --shadow-dark:#0a0506;
+  --ease-motion:cubic-bezier(.2,1,.2,1);
+  --ease-smooth:cubic-bezier(1,0,0,1);
+  --px-step:steps(4,end);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Nunito',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+::selection{background:var(--red);color:#fff}
+
+/* ---------- background layers ---------- */
+.bg-glow{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(60vw 50vh at 15% -10%, rgba(208,33,45,.28), transparent 60%),
+    radial-gradient(50vw 45vh at 90% 110%, rgba(126,20,24,.35), transparent 60%),
+    radial-gradient(30vw 30vh at 80% 10%, rgba(208,33,45,.10), transparent 60%),
+    linear-gradient(180deg,#150d0e 0%, #1b0f11 55%, #120a0b 100%);
+}
+#pixelSky{position:fixed;inset:0;z-index:1;pointer-events:none;image-rendering:pixelated}
+.bg-scan{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 2px, transparent 2px 5px);
+}
+.bg-vignette{position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0,0,0,.55) 100%);
+}
+
+/* ---------- boot / fatal ---------- */
+.boot{position:relative;z-index:5;min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:22px;text-align:center;padding:24px;
+  animation:panelIn .5s var(--ease-motion) both}
+.boot p{font-size:12px;line-height:2}
+
+/* ---------- typography helpers ---------- */
+.px{font-family:'Press Start 2P',monospace;letter-spacing:.02em}
+.display{font-family:'Press Start 2P',monospace;line-height:1.5}
+
+/* ============================================================
+   LOGIN GATE
+   ============================================================ */
+#gate{
+  position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+  padding:24px;transition:opacity .45s var(--ease-smooth), visibility .45s;
+}
+#gate.leaving{opacity:0;visibility:hidden;pointer-events:none}
+.gate-card{
+  width:min(520px,100%);background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border:3px solid var(--ink);border-radius:6px;
+  box-shadow:0 10px 0 var(--shadow-dark), 0 0 0 6px rgba(208,33,45,.18), 0 30px 80px rgba(0,0,0,.6);
+  padding:40px 36px 36px;text-align:center;position:relative;
+  animation:gateIn .7s var(--ease-motion) both .1s;
+}
+@keyframes gateIn{from{transform:translateY(46px) scale(.94);opacity:0}to{transform:none;opacity:1}}
+.gate-badge{display:inline-block;background:var(--red);color:#fff;font-size:9px;line-height:1.9;
+  padding:7px 12px;border-radius:4px;border:2px solid var(--ink);white-space:nowrap;
+  box-shadow:0 4px 0 var(--red-deep);margin-bottom:22px;
+  animation:badgeBlink 2.4s var(--px-step) infinite}
+@keyframes badgeBlink{0%,88%{transform:none}92%{transform:translateY(-2px)}96%{transform:none}}
+.gate-card h1{font-size:clamp(20px,5vw,30px);margin-bottom:10px}
+.gate-card h1 span{color:var(--red-hot)}
+.gate-sub{color:var(--muted);font-size:15px;font-weight:600;margin-bottom:26px;line-height:1.55}
+.gate-sub b{color:var(--ink)}
+.gate-prompt{font-size:11px;color:var(--red-hot);margin-bottom:16px}
+.gate-names{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:430px){.gate-names{grid-template-columns:1fr}}
+.gate-foot{margin-top:24px;font-size:12.5px;color:var(--muted)}
+.cursor-blink{display:inline-block;width:9px;height:14px;background:var(--red-hot);
+  vertical-align:-2px;animation:blink 1s steps(1) infinite;margin-left:4px}
+@keyframes blink{50%{opacity:0}}
+
+/* login roommate buttons */
+.mate-pick{display:flex;align-items:center;gap:12px;justify-content:flex-start;text-align:left}
+.mate-pick canvas{width:32px;height:32px;image-rendering:pixelated;flex:0 0 auto}
+.mate-pick:disabled{opacity:.5;cursor:default;transform:none}
+
+/* ============================================================
+   PIXEL BUTTONS  (hard-shadow press physics)
+   ============================================================ */
+.pxbtn{
+  font-family:'Press Start 2P',monospace;font-size:12px;color:var(--ink);
+  background:var(--panel2);border:3px solid var(--ink);border-radius:4px;
+  padding:14px 16px;cursor:pointer;position:relative;
+  box-shadow:0 6px 0 var(--shadow-dark);
+  transition:transform .12s steps(3,end), box-shadow .12s steps(3,end), background .2s var(--ease-motion), color .2s;
+  user-select:none;
+}
+.pxbtn:hover{background:#3a2829;transform:translateY(-2px);box-shadow:0 8px 0 var(--shadow-dark)}
+.pxbtn:active, .pxbtn.pressed{transform:translateY(5px);box-shadow:0 1px 0 var(--shadow-dark)}
+.pxbtn.red{background:var(--red)}
+.pxbtn.red:hover{background:var(--red-hot)}
+.pxbtn.ghost{border-color:var(--muted);color:var(--muted)}
+.pxbtn.ghost:hover{color:var(--ink);border-color:var(--ink)}
+.pxbtn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:0 6px 0 var(--shadow-dark)}
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+#app{position:relative;z-index:5;max-width:920px;margin:0 auto;padding:28px 20px 90px;
+  opacity:0;transform:translateY(18px);pointer-events:none;
+  transition:opacity .6s var(--ease-motion) .1s, transform .6s var(--ease-motion) .1s}
+#app.on{opacity:1;transform:none;pointer-events:auto}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:26px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-mark{width:44px;height:44px;background:var(--red);border:3px solid var(--ink);border-radius:6px;
+  box-shadow:0 5px 0 var(--red-deep);display:grid;place-items:center;
+  font-family:'Press Start 2P',monospace;font-size:15px;color:#fff;
+  animation:logoBob 3.2s var(--px-step) infinite}
+@keyframes logoBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.logo-name{font-size:15px;line-height:1.5}
+.logo-name small{display:block;font-family:'Nunito';font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em}
+.top-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.chip-user{display:flex;align-items:center;gap:10px;background:var(--panel);border:2px solid var(--line);
+  border-radius:6px;padding:7px 12px;font-weight:800;font-size:14px;color:var(--ink);
+  font-family:'Nunito';cursor:pointer}
+.chip-user:hover{border-color:var(--ink);background:var(--panel2)}
+.chip-user canvas{width:26px;height:26px;image-rendering:pixelated;border-radius:4px}
+.chip-out{font-size:8px;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:4px 5px}
+.chip-user:hover .chip-out{color:var(--red-hot);border-color:var(--red-hot)}
+
+/* ---------- main tabs ---------- */
+.tabs{display:flex;gap:12px;margin-bottom:8px;position:relative}
+.tabbtn{flex:1;font-family:'Press Start 2P',monospace;font-size:12px;padding:18px 10px;text-align:center;
+  background:var(--panel);border:3px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;
+  color:var(--muted);cursor:pointer;position:relative;top:6px;
+  transition:top .18s steps(3,end), color .2s, background .25s var(--ease-motion), border-color .2s}
+.tabbtn:hover{color:var(--ink);background:var(--panel2)}
+.tabbtn.active{top:0;background:linear-gradient(180deg,#33201f,var(--panel2));color:#fff;border-color:var(--ink)}
+.tabbtn.active::after{content:"";position:absolute;left:0;right:0;bottom:-3px;height:6px;background:inherit}
+.tabbtn .dot{display:inline-block;width:8px;height:8px;background:var(--red-hot);margin-right:8px;
+  opacity:0;transform:scale(0);transition:transform .2s steps(3,end), opacity .2s}
+.tabbtn.active .dot{opacity:1;transform:scale(1);animation:blink 1.2s steps(1) infinite}
+
+/* ---------- panels & pixel wipe ---------- */
+.panel-wrap{position:relative;border:3px solid var(--ink);border-radius:0 0 10px 10px;
+  background:linear-gradient(180deg,var(--panel2),var(--panel));
+  box-shadow:0 10px 0 var(--shadow-dark), 0 30px 70px rgba(0,0,0,.45);
+  overflow:hidden;min-height:520px}
+.panel{display:none;padding:30px clamp(18px,4vw,38px) 42px;position:relative;z-index:1}
+.panel.active{display:block;animation:panelIn .45s var(--ease-motion) both}
+@keyframes panelIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+#wipe{position:absolute;inset:0;z-index:8;display:grid;pointer-events:none;
+  grid-template-columns:repeat(12,1fr);grid-auto-rows:1fr}
+#wipe i{background:var(--red);opacity:0;border:1px solid rgba(0,0,0,.25)}
+#wipe.cover i{animation:wipeIn .5s steps(4,end) forwards}
+@keyframes wipeIn{0%{opacity:0}100%{opacity:1}}
+
+/* ---------- section headers ---------- */
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:34px 0 16px;flex-wrap:wrap}
+.sec-head:first-child{margin-top:0}
+.sec-title{font-size:12px;color:var(--ink);display:flex;align-items:center;gap:10px}
+.sec-title::before{content:"";width:10px;height:10px;background:var(--red);box-shadow:2px 2px 0 var(--red-deep)}
+.sec-hint{font-size:13px;color:var(--muted);font-weight:700}
+
+/* ---------- roommates ---------- */
+.mates{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.mate{background:var(--panel);border:2px solid var(--line);border-radius:8px;padding:16px 14px;text-align:center;
+  transition:transform .18s steps(3,end), border-color .2s, background .25s}
+.mate:hover{transform:translateY(-4px);border-color:var(--ink);background:var(--panel2)}
+.mate canvas{width:56px;height:56px;image-rendering:pixelated;border-radius:6px;margin-bottom:10px;
+  border:2px solid var(--line);background:#31221f}
+.mate .mname{font-weight:800;font-size:15px}
+.mate .mrole{font-size:11px;color:var(--muted);margin-top:5px;font-weight:700}
+.mate .streak{margin-top:10px;display:inline-block;font-size:9px;background:var(--red-soft);
+  color:var(--red-hot);padding:6px 8px;border-radius:4px;border:1px solid rgba(208,33,45,.35)}
+
+/* ---------- duty chips ---------- */
+.duty-chips{display:flex;gap:10px;flex-wrap:wrap}
+.dchip{font-family:'Press Start 2P',monospace;font-size:9px;padding:11px 12px;border-radius:4px;
+  border:2px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer;
+  transition:all .15s steps(3,end)}
+.dchip:hover{color:var(--ink);border-color:var(--muted);transform:translateY(-2px)}
+.dchip.sel{background:var(--red);color:#fff;border-color:var(--ink);box-shadow:0 4px 0 var(--red-deep);transform:translateY(-2px)}
+
+/* ---------- schedule hero ---------- */
+.hero-turn{margin-top:8px;background:
+    radial-gradient(120% 160% at 50% -30%, rgba(208,33,45,.30), transparent 60%), #1c1213;
+  border:3px solid var(--ink);border-radius:10px;padding:34px 22px 30px;text-align:center;
+  box-shadow:inset 0 0 0 3px rgba(208,33,45,.25), 0 8px 0 var(--shadow-dark);position:relative;overflow:hidden}
+.hero-turn .label{font-size:10px;color:var(--red-hot);margin-bottom:16px}
+.hero-turn .bigname{font-size:clamp(26px,7vw,52px);color:#fff;
+  text-shadow:4px 4px 0 var(--red-deep);margin:6px 0 10px}
+.hero-turn .dutyof{font-size:15px;color:var(--muted);font-weight:700}
+.hero-turn .dutyof b{color:var(--ink)}
+.hero-week{margin-top:14px;font-size:11px;color:var(--muted)}
+.hero-week b{color:var(--ink)}
+.marquee{position:absolute;top:0;left:0;right:0;overflow:hidden;opacity:.5;pointer-events:none}
+.marquee span{display:inline-block;white-space:nowrap;font-family:'Press Start 2P',monospace;font-size:8px;
+  color:var(--red-hot);padding:8px 0;animation:mq 18s linear infinite}
+@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ---------- rotation table ---------- */
+.rtable{width:100%;border-collapse:collapse;font-size:14px}
+.rtable th{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--muted);text-align:left;
+  padding:12px 10px;border-bottom:2px solid var(--line);letter-spacing:.04em}
+.rtable td{padding:13px 10px;border-bottom:1px solid var(--line);font-weight:700}
+.rtable tr{transition:background .2s}
+.rtable tbody tr:hover{background:rgba(255,255,255,.03)}
+.rtable .now td{background:var(--red-soft);color:#fff}
+.rtable .now td:first-child{box-shadow:inset 4px 0 0 var(--red)}
+.rtable .who{color:var(--red-hot)}
+.rtable .now .who{color:#fff}
+.rtable .future{color:var(--muted)}
+
+/* ---------- mark as done ---------- */
+.done-zone{margin-top:26px;text-align:center}
+.done-zone .pxbtn{font-size:15px;padding:22px 34px;width:min(430px,100%)}
+.done-zone .pxbtn .sub{display:block;font-family:'Nunito';font-size:12px;font-weight:800;margin-top:10px;opacity:.75;letter-spacing:.02em}
+.done-note{margin-top:14px;font-size:13px;color:var(--muted);font-weight:700}
+
+/* ---------- sub tabs (general) ---------- */
+.subtabs{display:flex;gap:8px;margin-bottom:18px}
+.subtab{font-size:10px;padding:11px 14px;border-radius:4px;border:2px solid var(--line);
+  background:transparent;color:var(--muted);cursor:pointer;font-family:'Press Start 2P',monospace;
+  transition:all .15s steps(3,end)}
+.subtab:hover{color:var(--ink);border-color:var(--muted)}
+.subtab.active{background:var(--ink);color:#1a1114;border-color:var(--ink)}
+.subpane{display:none}
+.subpane.active{display:block;animation:panelIn .35s var(--ease-motion) both}
+
+/* ---------- patungan ---------- */
+.ptable{width:100%;border-collapse:collapse}
+.ptable th{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--muted);text-align:left;padding:11px 8px;border-bottom:2px solid var(--line)}
+.ptable td{padding:12px 8px;border-bottom:1px solid var(--line);font-weight:700;font-size:14px;vertical-align:top}
+.pill-cell{display:flex;gap:6px;flex-wrap:wrap}
+.pay-pill{font-family:'Press Start 2P',monospace;font-size:8px;padding:9px 11px;border-radius:4px;cursor:pointer;
+  border:2px solid var(--ink);transition:transform .12s steps(2,end), background .2s, color .2s;min-width:86px;text-align:center}
+.pay-pill.paid{background:var(--green);color:#07250f;box-shadow:0 4px 0 var(--green-deep)}
+.pay-pill.owes{background:var(--red);color:#fff;box-shadow:0 4px 0 var(--red-deep)}
+.pay-pill:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.5)}
+.exp-form{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.exp-form input{flex:1;min-width:140px;background:#170e0f;border:2px solid var(--line);border-radius:4px;
+  padding:13px 14px;color:var(--ink);font-family:'Nunito';font-weight:700;font-size:14px;outline:none;
+  transition:border-color .2s, box-shadow .2s}
+.exp-form input:focus{border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
+.exp-form input.amt{flex:0 0 130px;min-width:110px}
+.exp-form .pxbtn{font-size:10px}
+
+/* ---------- activity feed ---------- */
+.feed{list-style:none;display:flex;flex-direction:column;gap:10px}
+.feed li{display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:2px solid var(--line);
+  border-radius:8px;padding:13px 15px;font-size:14px;font-weight:700;
+  animation:feedIn .4s var(--ease-motion) both}
+@keyframes feedIn{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:none}}
+.feed .t{font-size:11px;color:var(--muted);white-space:nowrap;padding-top:2px;font-weight:800}
+.feed .who{color:var(--red-hot)}
+.feed li.fresh{border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
+
+/* ---------- toast ---------- */
+#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,80px);z-index:60;
+  background:var(--ink);color:#1c1113;font-weight:800;font-size:14px;padding:14px 20px;border-radius:6px;
+  border:3px solid #1c1113;box-shadow:0 6px 0 rgba(0,0,0,.55);opacity:0;pointer-events:none;
+  transition:transform .3s var(--ease-motion), opacity .3s;max-width:min(480px,90vw);text-align:center}
+#toast.show{transform:translate(-50%,0);opacity:1}
+#toast b{color:var(--red)}
+
+/* ---------- confetti canvas ---------- */
+#confetti{position:fixed;inset:0;z-index:70;pointer-events:none;image-rendering:pixelated}
+
+/* ---------- UX law annotations ---------- */
+.law-chip{position:fixed;z-index:40;font-family:'Press Start 2P',monospace;font-size:8px;line-height:1.7;
+  background:#0e0909;color:var(--ink);border:2px solid var(--red-hot);border-radius:4px;padding:8px 10px;
+  max-width:230px;box-shadow:0 4px 0 rgba(0,0,0,.5);opacity:0;transform:scale(.7);pointer-events:none;
+  transition:opacity .25s var(--ease-motion), transform .25s steps(4,end)}
+.law-chip b{color:var(--red-hot);display:block;margin-bottom:4px}
+.law-chip::before{content:"";position:absolute;top:-6px;left:14px;width:8px;height:8px;background:var(--red-hot);
+  transform:rotate(45deg)}
+body.laws-on .law-chip{opacity:1;transform:scale(1);pointer-events:auto}
+body.laws-on [data-law]{outline:2px dashed rgba(255,74,74,.65);outline-offset:4px}
+.pxbtn.active{background:var(--red);color:#fff}
+
+/* ---------- footer ---------- */
+.foot{margin-top:34px;text-align:center;color:var(--muted);font-size:12.5px;font-weight:700;line-height:1.9}
+.foot .px{font-size:8px;color:var(--red-hot)}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}

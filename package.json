@@ -1,0 +1,28 @@
+{
+  "name": "united-216",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "United 216 - pixel-powered roommate duty tracker for Telkom University Dormitory Room 216",
+  "scripts": {
+    "dev": "concurrently -n api,web -c magenta,cyan \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:web": "vite",
+    "dev:api": "node server/index.js",
+    "start": "npm run dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "db:reset": "node server/reset.js",
+    "smoke": "node scripts/smoke.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.2.0",
+    "express": "^4.21.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.2.0",
+    "vite": "^7.1.0"
+  }
+}
