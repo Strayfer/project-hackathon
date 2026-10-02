@@ -140,6 +140,9 @@ body{
 .chip-user canvas{width:26px;height:26px;image-rendering:pixelated;border-radius:4px}
 .chip-out{font-size:8px;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:4px 5px}
 .chip-user:hover .chip-out{color:var(--red-hot);border-color:var(--red-hot)}
+.chip-mode{font-size:8px;letter-spacing:.06em;color:var(--muted);border:1px dashed var(--line);
+  border-radius:3px;padding:4px 6px;cursor:help;white-space:nowrap}
+.chip-mode:hover{color:var(--red-hot);border-color:var(--red-hot)}
 
 /* ---------- main tabs ---------- */
 .tabs{display:flex;gap:12px;margin-bottom:8px;position:relative}

@@ -1,221 +1,163 @@
 # United 216
 
-**Room harmony engine for Telkom University Dormitory Room 216.**
+Room 216 duty tracker for Telkom University Dormitory. React + Vite frontend, Express +
+better-sqlite3 backend. The old single-file `index.html` prototype is now a real project
+with a persistent database.
 
-A pixel-art roommate duty tracker that answers the question every dorm has:
-*"wait, whose turn was it?"*
+Runs **with or without a backend**: locally it uses the shared SQLite API, and on a static
+host like Vercel it transparently falls back to a `localStorage` ledger. See
+[Two backends](#two-backends).
 
-Duty rotations, shared expenses (*patungan*), and an activity feed — all in one small app, backed by a local SQLite database.
-
----
-
-## Features
-
-### Login gate
-Pick your face from the four roommates. No passwords — this is a dorm, not a bank. The app remembers who is signed in during the session.
-
-### Duty rotation
-The **Schedule** tab shows whose turn it is for the selected duty, this week and the next four. Hit **MARK AS DONE** and one press:
-
-- advances the schedule pointer to the next week,
-- writes a receipt into the activity feed,
-- tells you whose turn is next.
-
-The rotation is pre-materialised in the database as one row per `(duty, week)`, so lookups are a simple read — no computation, no arguing.
-
-Duties tracked: Water Tank, Room Cleaning, Bathroom, Rice Restock, Electricity Token.
-
-### Patungan (shared expenses)
-Log a purchase and a total; it is split four ways. Each roommate gets a `PAID ✓` / `OWES` pill you can tap to toggle. Amounts are formatted as Indonesian rupiah (`Rp 50.000`) with `id-ID` locale grouping.
-
-### Activity feed
-Every action leaves a receipt: who did what and when. Messages are stored as plain text with `**bold**` markers and rendered through a tiny inline formatter — nothing user-supplied is ever injected as HTML.
-
-### Sound
-Optional Web Audio blips synthesised in the browser (no audio assets). Toggle from the top bar; the preference persists to the database.
-
-### UX law annotations
-A hackathon flourish: flip the **UX LAWS** toggle and red badges appear next to elements annotated with a `data-law="Name|Reason"` attribute — Hick's Law, Fitts's Law, Miller's Law, Jakob's Law, Aesthetic-Usability, Peak-End Rule. Hover them to read the rationale.
-
-### Pixel aesthetic
-Avatars are drawn at runtime as 8×8 pixel faces on a `<canvas>` (`src/lib/avatar.js`) — no image assets. Tab switches play a 48-cell staggered pixel wipe.
-
----
-
-## Tech stack
-
-| Layer | Choice |
-| --- | --- |
-| Frontend | React 19, Vite 7, `@vitejs/plugin-react` |
-| Backend | Express 4 (Node ESM) |
-| Database | SQLite via `better-sqlite3` |
-| Styling | Hand-written CSS, no framework (`src/styles/index.css`) |
-| Fonts | Press Start 2P + Nunito (Google Fonts) |
-| Dev orchestration | `concurrently` |
-
-No TypeScript, no CSS framework, no state-management library. The whole client is a single `useState` blob in `App.jsx` replaced by server responses.
-
----
-
-## Getting started
-
-### Requirements
-
-- **Node.js 18+** (Node 20+ recommended — `better-sqlite3` ships prebuilt binaries)
-- **npm 10+**
-- Git, if you plan to clone
-
-### Install
+## Run it locally
 
 ```bash
 npm install
-```
-
-### Run in development
-
-```bash
 npm run dev
 ```
 
-This starts both processes via `concurrently`:
+That starts both processes and opens the app in your browser:
 
-- **API** — Express on `http://localhost:3001`
-- **Web** — Vite on `http://localhost:5173` (opens automatically)
+| Service     | URL                     |
+| ----------- | ----------------------- |
+| Vite app   | http://localhost:5173   |
+| API        | http://localhost:3001   |
+| SQLite file| `data/room216.db`       |
 
-Vite proxies `/api/*` to the Express server, so the browser only ever talks to port 5173.
+Vite proxies `/api/*` to the API, so there is no CORS setup and no environment variables
+to configure.
 
-The SQLite database is created and seeded automatically at `data/room216.db` on first API start. Nothing to set up.
+## Scripts
 
-### All scripts
+| Command             | What it does                                              |
+| ------------------- | --------------------------------------------------------- |
+| `npm run dev`       | API + Vite together (`concurrently`)                        |
+| `npm run dev:web`   | Vite only                                                  |
+| `npm run dev:api`   | Express + SQLite only                                      |
+| `npm run build`     | Production bundle into `dist/`                             |
+| `npm run db:reset`  | Deletes the database file; the next API start re-seeds it  |
+| `npm test`          | API smoke test against a running dev API (16 checks)       |
+| `npm run test:ui`   | Headless Edge run through the whole UI flow (24 checks)    |
+| `npm run test:contract` | API vs browser-local parity check (30 checks)          |
+| `npm run test:static` | Builds `dist/` and drives it with **no** API at all (14 checks) |
 
-| Script | What it does |
-| --- | --- |
-| `npm run dev` | API + web dev servers together |
-| `npm run dev:web` | Vite dev server only (port 5173) |
-| `npm run dev:api` | Express API only (port 3001) |
-| `npm run build` | Production build into `dist/` |
-| `npm run preview` | Serve the production build locally |
-| `npm run db:reset` | Delete the SQLite file; the next API start re-seeds Room 216 |
-| `npm run smoke` | End-to-end API smoke test — see below |
+Stop the API before `npm run db:reset` — Windows will not delete a file that is open.
 
-### Smoke test
+## Two backends
 
-`scripts/smoke.js` exercises the full API against a running dev server: bootstrap shape, rotation advance, login validation, mark-as-done, the 4-way expense split, payment toggles, and input limits.
+The app has two interchangeable backends behind one identical interface.
 
-```bash
-npm run dev     # terminal 1
-npm run smoke   # terminal 2
+| Mode | When it is used | Where data lives |
+| ---- | --------------- | ---------------- |
+| `api` | `GET /api/health` returns `{ok:true}` | SQLite at `data/room216.db`, shared by everyone |
+| `local` | No API answers | `localStorage` key `united216:v1`, per browser |
+
+On boot `src/api.js` probes `/api/health` **once**. If it does not answer with
+`{ok:true}`, the client switches to `src/lib/localStore.js` for the rest of the page load and
+the topbar shows a `LOCAL LEDGER` badge.
+
+This exists because a static host serves only the built bundle. On Vercel, `/api/bootstrap`
+returns the host's HTML 404 page rather than JSON — which used to blow up with
+`Unexpected token 'T', "The page c"... is not valid JSON` and the
+**CANNOT REACH THE ROOM LEDGER** screen. `src/api.js` now parses defensively: a non-JSON body
+becomes a clean "API unavailable" signal that triggers the fallback.
+
+### The tradeoff
+
+**In `local` mode the ledger is per-browser.** Two people opening the Vercel URL get two
+independent rooms. The shared SQLite ledger only exists when the API is running. For a real
+multi-device deployment you would move the API to a hosted database — SQLite cannot run on
+Vercel, whose filesystem is read-only and ephemeral.
+
+### Keeping the two in sync
+
+`shared/seed.js` is the single source of truth for roommates, duties, and the rotation rule.
+Both `server/db.js` and `src/lib/localStore.js` import it, so the two backends cannot drift
+on seed data.
+
+`npm run test:contract` enforces parity on *behaviour*: it boots a throwaway API and a
+`localStorage` store side by side and diffs every response field, including error cases. It
+caught two real mismatches during development — `latestActivity` returned `created_at` from
+the API but `createdAt` locally, and `markDone` resolved rotation names incorrectly in
+local mode.
+
+`npm run test:static` is the Vercel regression test: it serves `dist/` over HTTP with no
+backend, confirms unknown `/api/*` paths return HTML (reproducing the original failure),
+then asserts the app boots, mutates data, and survives a reload.
+
+## Project layout
+
+```
+index.html            Vite entry (mounts #root, loads fonts)
+vite.config.js        React plugin + /api proxy to :3001
+shared/
+  seed.js              roommates, duties, rotation rule — shared by BOTH backends
+server/
+  db.js               SQLite connection, schema, seed data
+  index.js            Express routes
+  reset.js            db:reset helper
+src/
+  main.jsx            React root
+  App.jsx             app state, API orchestration, tab shell
+  api.js              fetch wrapper + backend probe/fallback
+  components/         LoginGate, TopBar area, MateGrid, Patungan,
+                      ActivityFeed, SchedulePanel, PixelWipe,
+                      LawAnnotations, Backdrop, Toast, Avatar
+  lib/
+    localStore.js     browser-localStorage backend (mirrors server/index.js)
+    sound.js          Web Audio synth SFX
+    avatar.js         pixel avatar painter
+    confetti.js       canvas confetti burst
+    format.js         rupiah + rotation helpers
+  styles/index.css    the prototype's stylesheet, ported verbatim
+scripts/
+  smoke.js            API-level test
+  browser-check.js    CDP-driven UI test (needs dev servers running)
+  contract-check.js   API vs localStore parity
+  static-check.js     dist/ with no backend — the Vercel regression test
 ```
 
-It prints a PASS/FAIL line per check and exits non-zero on any failure. All 16 checks pass against a freshly seeded database.
+## Database
 
-Note that the smoke test **mutates** the database — it rolls the schedule forward, logs a "Smoke test rice" expense, and toggles sound off. Run `npm run db:reset` afterwards to return to a clean seed.
+`data/room216.db` is created and seeded on first API start.
 
----
+| Table              | Purpose                                                   |
+| ------------------ | --------------------------------------------------------- |
+| `mates`            | The 4 roommates, with pixel-avatar traits and streak        |
+| `duties`           | The 5 rotating chores                                      |
+| `rotation`         | Materialised schedule: one row per (duty, week) -> owner   |
+| `room_state`       | Singleton row: logged-in user, current week, sound setting |
+| `expenses`         | Patungan purchases                                        |
+| `expense_payments` | Per-expense, per-roommate paid flag                        |
+| `activity`         | Append-only feed of everything the room did                |
 
-## Configuration
+Two things changed from the prototype, both because state now lives in the database:
 
-All optional — the app runs with zero configuration.
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `PORT` | `3001` | Express listen port |
-| `DB_PATH` | `data/room216.db` | SQLite file location |
-| `API_LOG` | on (any value) | Request logging; set to `off` to silence it |
-
-Example — run the API on another port with a separate database:
-
-```bash
-PORT=4000 DB_PATH=data/scratch.db npm run dev:api
-```
-
----
-
-## Project structure
-
-```
-.
-├── index.html                     Vite entry, font preconnects
-├── vite.config.js                 React plugin, port 5173, /api proxy to 3001
-├── package.json
-├── data/                          SQLite file lives here (gitignored)
-├── scripts/
-│   └── smoke.js                   End-to-end API smoke test (16 checks)
-├── server/
-│   ├── index.js                   Express app + all API routes
-│   ├── db.js                      Schema, migrations-on-boot, seed data
-│   └── reset.js                   Deletes the DB file
-└── src/
-    ├── main.jsx                   React root
-    ├── App.jsx                    All state, tabs, toast orchestration
-    ├── api.js                     Thin fetch wrapper around /api
-    ├── components/
-    │   ├── ActivityFeed.jsx       Receipt list with **bold** parsing
-    │   ├── Avatar.jsx             Canvas-backed pixel face
-    │   ├── Backdrop.jsx           Animated room background
-    │   ├── LawAnnotations.jsx     Portal-based UX-law chips
-    │   ├── LoginGate.jsx          Roommate picker overlay
-    │   ├── MateGrid.jsx           The Room panel
-    │   ├── Patungan.jsx           Expense form + payment ledger
-    │   ├── PixelWipe.jsx          Staggered 48-cell wipe transition
-    │   ├── SchedulePanel.jsx      Rotation hero + ahead table
-    │   └── Toast.jsx              Ephemeral notification
-    ├── lib/
-    │   ├── avatar.js              8×8 face painter
-    │   ├── confetti.js            Canvas confetti burst
-    │   ├── format.js              Rupiah + rotation helpers
-    │   └── sound.js               Web Audio synth SFX
-    └── styles/index.css           Entire stylesheet
-```
-
----
-
-## Data model
-
-Seven tables, created idempotently on boot (`CREATE TABLE IF NOT EXISTS`) with WAL journaling and foreign keys enabled.
-
-| Table | Purpose |
-| --- | --- |
-| `mates` | The four roommates — name, role, hair/skin indices for the avatar, streak |
-| `duties` | The five tracked duties, display-ordered |
-| `rotation` | Materialised schedule: one row per `(duty_id, week)` → `mate_id`. Primary key `(duty_id, week)`. |
-| `room_state` | Singleton row (`id = 1`): `current_week` pointer, `current_user`, `sound_on` |
-| `expenses` | One row per shared purchase — description, amount in rupiah, creator |
-| `expense_payments` | Join table: one row per `(expense_id, mate_id)` → `paid` flag |
-| `activity` | Append-only feed of receipts |
-
-Seed data is applied only when `mates` is empty, so restarting the server never overwrites your data. Mate and duty definitions live in `server/db.js` (`MATES`, `DUTIES`) — edit those and run `npm run db:reset` to reseed.
-
-The 16-week rotation is generated with a staggered start (`mates[(duty + week) % 4]`), so no two duties start on the same person.
-
----
+- **The rotation is a table, not a formula.** The prototype computed
+  `(offset + week) % 4` in the browser. `rotation` holds the same staggered start as
+  materialised rows (16 weeks per duty), so the schedule is queryable and the API can
+  report who is next without the client re-deriving it.
+- **`current_week` is server-owned.** "MARK AS DONE" is a `POST` that increments it inside
+  a transaction and writes the activity row, so two people in the room cannot double-advance
+  the schedule.
 
 ## API
 
-All responses return the complete room state, so the client never has to merge partial updates.
+| Method | Path                        | Purpose                                    |
+| ------ | --------------------------- | ------------------------------------------ |
+| GET    | `/api/bootstrap`            | Full room state in one request              |
+| POST   | `/api/login`                | `{ name }` -> sets `room_state.current_user` |
+| POST   | `/api/logout`               | Clears the logged-in user                   |
+| PUT    | `/api/settings/sound`       | `{ soundOn }`                               |
+| POST   | `/api/schedule/done`        | `{ dutyId }` -> advances the week, logs it  |
+| POST   | `/api/expenses`             | `{ desc, amount }` -> splits 4 ways          |
+| POST   | `/api/expenses/:id/toggle`  | `{ mateId }` -> flips a paid flag           |
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/api/health` | Liveness check; reports the DB path |
-| `GET` | `/api/bootstrap` | Full state — mates, duties, rotation, expenses, activity, session |
-| `POST` | `/api/login` | `{ name }` → sets the current user. 400 if unknown |
-| `POST` | `/api/logout` | Clears the current user |
-| `PUT` | `/api/settings/sound` | `{ soundOn: boolean }` |
-| `POST` | `/api/schedule/done` | `{ dutyId }` → rolls `current_week` forward, logs activity, returns who/nextWho |
-| `POST` | `/api/expenses` | `{ desc, amount }` → splits 4 ways. 400 if desc empty or amount < 1000 |
-| `POST` | `/api/expenses/:id/toggle` | `{ mateId }` → flips that roommate's paid flag |
+Every mutating route returns the full updated state, so the client never has to guess what
+changed.
 
-Expense creation, schedule advancement, and activity logging each run inside a `better-sqlite3` transaction, so a half-written schedule cannot survive a crash.
+## Notes
 
----
-
-## Notes on the build
-
-- `data/*.db`, `-wal`, `-shm`, and `-journal` are gitignored — the database is local state, not source.
-- `node_modules` and `dist` are gitignored.
-- The split is hardcoded to 4 people via `PEOPLE_COUNT` in `src/lib/format.js` and `entries.length` on the server. Both read from the same assumption; changing one without the other will misreport per-person amounts.
-- No authentication, no rate limiting, no input length limits beyond a `maxLength` on the description field. This is a single-dorm LAN tool, not a public service.
-
----
-
-Built by Room 216, for every room. · hackathon edition
+- Activity messages are stored as plain text with `**bold**` markers and rendered by a tiny
+  formatter, so nothing user-supplied is ever injected as HTML.
+- The login gate stays mounted during its 380ms exit transition, then unmounts.
+- Requires Node.js 20+ (developed on 24.19 LTS).

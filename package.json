@@ -12,6 +12,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "db:reset": "node server/reset.js",
+    "test": "node scripts/smoke.js",
+    "test:ui": "node scripts/browser-check.js",
+    "test:contract": "node scripts/contract-check.js",
+    "test:static": "npm run build && node scripts/static-check.js",
     "smoke": "node scripts/smoke.js"
   },
   "dependencies": {

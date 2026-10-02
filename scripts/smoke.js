@@ -23,7 +23,12 @@ const check = (label, condition, detail = '') => {
 const start = await call('/bootstrap')
 check('bootstrap returns 4 mates / 5 duties', start.mates.length === 4 && start.duties.length === 5)
 check('rotation is materialised for 16 weeks', start.rotation.length === 80, `${start.rotation.length} rows`)
-check('seeded expenses + payments join', start.expenses.length === 8, `${start.expenses.length} payment rows`)
+const splitSizes = [...new Set(start.expenses.map((r) => start.expenses.filter((x) => x.id === r.id).length))]
+check(
+  'every expense is split across all 4 roommates',
+  splitSizes.length === 1 && splitSizes[0] === 4,
+  `split sizes: ${splitSizes.join(',')} across ${start.expenses.length} payment rows`
+)
 
 const who0 = start.rotation.find((r) => r.dutyId === start.duties[0].id && r.week === 0)
 const who1 = start.rotation.find((r) => r.dutyId === start.duties[0].id && r.week === 1)

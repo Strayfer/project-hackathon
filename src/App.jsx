@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api } from './api.js'
+import { api, backend, onBackendChange } from './api.js'
 import { sfx } from './lib/sound.js'
 import { burstConfetti } from './lib/confetti.js'
 import { perPerson, rp } from './lib/format.js'
@@ -38,7 +38,10 @@ export default function App() {
   const [lawsOn, setLawsOn] = useState(false)
   const [covered, setCovered] = useState(false)
   const [wipeRun, setWipeRun] = useState(0)
+  const [backendMode, setBackendMode] = useState(backend)
   const timers = useRef([])
+
+  useEffect(() => onBackendChange(setBackendMode), [])
 
   /* ---------- toast helpers ---------- */
   const say = useCallback((node) => setToast({ id: Date.now() + Math.random(), node }), [])
@@ -217,8 +220,17 @@ export default function App() {
           <p style={{ color: 'var(--muted)', fontSize: 9, lineHeight: 2 }}>
             {fatal}
             <br />
-            Is the API running? try: npm run dev
+            Both the shared API and the browser-local ledger failed.
+            <br />
+            Check that the API is running: npm run dev
           </p>
+          <button
+            className="pxbtn red"
+            style={{ marginTop: 14 }}
+            onClick={() => window.location.reload()}
+          >
+            TRY AGAIN
+          </button>
         </div>
       </>
     )
@@ -245,6 +257,14 @@ export default function App() {
             </div>
           </div>
           <div className="top-actions">
+            {backendMode === 'local' && (
+              <span
+                className="chip-mode px"
+                title="No shared API answered, so this browser keeps its own copy of the ledger in localStorage. Data is not shared with other devices."
+              >
+                LOCAL LEDGER
+              </span>
+            )}
             <button
               className={`pxbtn ghost${lawsOn ? ' active' : ''}`}
               style={{ fontSize: 9, padding: '11px 13px' }}
@@ -354,7 +374,7 @@ export default function App() {
         <footer className="foot">
           <div className="px">UNITED 216 — BUILT BY ROOM 216, FOR EVERY ROOM</div>
           coordination · financial discipline · harmony. data lives in SQLite at
-          server/data/room216.db, hackathon edition.
+          data/room216.db when the API is running, otherwise in this browser.
         </footer>
       </main>
 
